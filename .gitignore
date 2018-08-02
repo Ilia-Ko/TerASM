@@ -1,3 +1,11 @@
+# IDEs
+.idea
+.classpath
+.project
+*.iml
+*.iws
+*.ipr
+
 # Compiled class file
 *.class
 
