@@ -33,8 +33,12 @@ public abstract class AsmLine {
         // dereference labels if present
         for (int i = 0; i < trytes.size(); i++) {
             String tryte = trytes.get(i);
-            if (Processor.isValidLabelName(tryte))
+            if (tryte.charAt(0) == '$') { // link is absolute, should be relative
+                int relAddress = processor.getLabels().get(tryte.substring(1)).address - address;
+                trytes.set(i, DataType.TRYTE.compile(Integer.toString(relAddress)).get(0));
+            } else if (Processor.isValidLabelName(tryte)) {
                 trytes.set(i, processor.getLabels().get(tryte).getAddress());
+            }
         }
         return trytes;
     }

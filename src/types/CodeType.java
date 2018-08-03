@@ -400,15 +400,19 @@ public enum CodeType {
             if (op1Adr || op2Adr) throw new Exception("Jxx operands can not be [addresses].");
             boolean op1Reg = Processor.isValidRegName(op1);
             boolean op1Imm = !op1Reg && Processor.isValidLabelName(op1);
-            boolean op2Reg = Processor.isValidRegName(op2);
-            boolean op2Imm = !op2Reg && Processor.isValidLabelName(op2);
+            boolean op2Reg = twoOps && Processor.isValidRegName(op2);
+            boolean op2Imm = twoOps && !op2Reg && Processor.isValidLabelName(op2);
             if (op1Reg) op1 = Processor.parseReg(op1);
             if (twoOps && op2Reg) op2 = Processor.parseReg(op2);
-            if (!op1Imm && !op1Reg) {
+            if (op1Imm) {
+                op1 = "$" + op1;
+            } else if (!op1Reg) {
                 op1 = DataType.TRYTE.compile(op1).get(0);
                 op1Imm = true;
             }
-            if (twoOps && !op2Imm && !op2Reg) {
+            if (twoOps && op2Imm) {
+                op2 = "$" + op2;
+            } else if (twoOps && !op2Reg) {
                 op2 = DataType.TRYTE.compile(op2).get(0);
                 op2Imm = true;
             }

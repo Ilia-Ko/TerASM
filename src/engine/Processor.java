@@ -41,21 +41,22 @@ public class Processor {
     }
     void output() throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(destination));
-        int index = 0;
 
         // output everything
-        for (AsmLine line : code)
+        for (AsmLine line : code) {
             for (String tryte : line.output()) {
                 writer.write(tryte);
-                if (++index % 27 == 0) writer.newLine();
-                else writer.write(' ');
+                writer.write(' ');
             }
-        for (AsmLine line : data)
+            writer.newLine();
+        }
+        for (AsmLine line : data) {
             for (String tryte : line.output()) {
                 writer.write(tryte);
-                if (++index % 27 == 0) writer.newLine();
-                else writer.write(' ');
+                writer.write(' ');
             }
+            writer.newLine();
+        }
 
         writer.flush();
         writer.close();
