@@ -31,7 +31,7 @@ public abstract class AsmLine {
 
     public abstract int compile(int address) throws Exception;
 
-    public ArrayList<String> output() {
+    public ArrayList<String> output() throws Exception {
         // dereference labels if present
         for (int i = 0; i < trytes.size(); i++) {
             String tryte = trytes.get(i);
@@ -41,6 +41,8 @@ public abstract class AsmLine {
                 int relAddress = processor.getLabels().get(tryte).address - address - currLen;
                 trytes.set(i, DataType.TRYTE.compile(Integer.toString(relAddress)).get(0));
             } else if (Processor.isValidLabelName(tryte)) {
+                AsmLine link = processor.getLabels().get(tryte);
+                if (link == null) throw new Exception("Undefined label: " + tryte);
                 trytes.set(i, processor.getLabels().get(tryte).getAddress());
             }
         }

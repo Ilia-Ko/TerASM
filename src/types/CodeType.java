@@ -99,8 +99,8 @@ public enum CodeType {
             if (twoOps && op2Adr) op2 = CodeType.dereference(op2);
             boolean op1Reg = Processor.isValidRegName(op1);
             boolean op1Imm = !op1Reg && Processor.isValidLabelName(op1);
-            boolean op2Reg = Processor.isValidRegName(op2);
-            boolean op2Imm = !op2Reg && Processor.isValidLabelName(op2);
+            boolean op2Reg = twoOps && Processor.isValidRegName(op2);
+            boolean op2Imm = twoOps && !op2Reg && Processor.isValidLabelName(op2);
             if (op1Reg) op1 = Processor.parseReg(op1);
             if (twoOps && op2Reg) op2 = Processor.parseReg(op2);
             if (!op1Imm && !op1Reg) {

@@ -39,7 +39,7 @@ public class Processor {
         for (AsmLine codeUnit : code) address = codeUnit.compile(address);
         for (AsmLine dataUnit : data) address = dataUnit.compile(address);
     }
-    void output() throws IOException {
+    void output() throws Exception {
         BufferedWriter writer = new BufferedWriter(new FileWriter(destination));
 
         // output everything

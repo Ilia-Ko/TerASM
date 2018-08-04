@@ -12,7 +12,7 @@ public class DataLine extends AsmLine {
 
     @Override public int compile(int address) throws Exception {
         // split to parts
-        String[] parts = line.split("[ ,]");
+        String[] parts = line.split("[\\t ,]");
         if (parts.length < 2) throw new Exception("Data line too short: " + line);
 
         // get data type
