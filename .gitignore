@@ -2,6 +2,7 @@
 .idea
 .classpath
 .project
+.out
 *.iml
 *.iws
 *.ipr

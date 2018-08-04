@@ -7,6 +7,8 @@ import java.util.ArrayList;
 
 public abstract class AsmLine {
 
+    private static final int BASE_ADDRESS = -364;
+
     String line;
     ArrayList<String> trytes;
     int address;
@@ -34,7 +36,9 @@ public abstract class AsmLine {
         for (int i = 0; i < trytes.size(); i++) {
             String tryte = trytes.get(i);
             if (tryte.charAt(0) == '$') { // link is absolute, should be relative
-                int relAddress = processor.getLabels().get(tryte.substring(1)).address - address;
+                int currLen = tryte.charAt(1) - '0'; // account additional trytes of the current instruction
+                tryte = tryte.substring(2);
+                int relAddress = processor.getLabels().get(tryte).address - address - currLen;
                 trytes.set(i, DataType.TRYTE.compile(Integer.toString(relAddress)).get(0));
             } else if (Processor.isValidLabelName(tryte)) {
                 trytes.set(i, processor.getLabels().get(tryte).getAddress());
@@ -43,7 +47,7 @@ public abstract class AsmLine {
         return trytes;
     }
     private String getAddress() {
-        return DataType.TRYTE.compile(Integer.toString(address)).get(0);
+        return DataType.TRYTE.compile(Integer.toString(address + BASE_ADDRESS)).get(0);
     }
 
 }

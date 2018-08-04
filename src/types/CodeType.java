@@ -140,7 +140,7 @@ public enum CodeType {
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(CodeType.asm("0", op1, "λ", "0", "1", "λ"));
                 trytes.add(op1);
-            } else throw new Exception("FILLx " + ops.get(0) + ", " + (twoOps ? ops.get(1) : "") + " not allowed.");
+            } else throw new Exception("FILLx " + ops.get(0) + (twoOps ? (", " + ops.get(1)) : "") + " not allowed.");
             return trytes;
         }
     },
@@ -359,7 +359,7 @@ public enum CodeType {
                 trytes.add(CodeType.asm("0", "0", "0", "0", "1", "0"));
                 trytes.add(op1);
                 trytes.add(op2);
-            }
+            } else throw new Exception("CMP " + ops.get(0) + ", " + ops.get(1) + " not allowed.");
             return trytes;
         }
     },
@@ -417,6 +417,7 @@ public enum CodeType {
                 op2Imm = true;
             }
             // assemble
+            char instrLen = '3';
             ArrayList<String> trytes = new ArrayList<>();
             if (op1Reg & !twoOps) {
                 // jxx a
@@ -429,12 +430,14 @@ public enum CodeType {
                 trytes.add(CodeType.asm("1", "0", "1", "1", "0", "0"));
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(op1);
+                instrLen++;
             } else if (op1Imm & op2Reg) {
                 // jxx i1, a
                 trytes.add(CodeType.asm("0", "1", "0", "0", con, typ));
                 trytes.add(CodeType.asm("1", "0", "1", "0", op1, "0"));
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(op1);
+                instrLen++;
             } else if (op1Imm & op2Imm) {
                 // jxx i1, i2
                 trytes.add(CodeType.asm("1", "1", "0", "0", con, typ));
@@ -442,6 +445,15 @@ public enum CodeType {
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(op1);
                 trytes.add(op2);
+                instrLen += 2;
+            } else throw new Exception("Jxx " + ops.get(0) + ", " + ops.get(1) + " not allowed.");
+            if (op1.startsWith("$")) {
+                op1 = "$" + instrLen + op1.substring(1);
+                trytes.set(3, op1);
+            }
+            if (twoOps && op2.startsWith("$")) {
+                op2 = "$" + instrLen + op2.substring(1);
+                trytes.set(4, op2);
             }
             return trytes;
         }
@@ -557,7 +569,7 @@ public enum CodeType {
                 trytes.add(CodeType.asm(al0, al1, "λ", "0", op2, "0"));
                 trytes.add(CodeType.asm("1", dst, "1", "0", "1", "0"));
                 trytes.add(op1);
-            } else throw new Exception("ADx " + ops.get(0) + ", " + ops.get(1) + " → " + ops.get(2) + " not allowed.");
+            } else throw new Exception(realName + " " + ops.get(0) + ", " + ops.get(1) + " → " + ops.get(2) + " not allowed.");
             return trytes;
         }
     };
