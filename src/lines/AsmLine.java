@@ -36,9 +36,8 @@ public abstract class AsmLine {
         for (int i = 0; i < trytes.size(); i++) {
             String tryte = trytes.get(i);
             if (tryte.charAt(0) == '$') { // link is absolute, should be relative
-                int currLen = tryte.charAt(1) - '0'; // account additional trytes of the current instruction
-                tryte = tryte.substring(2);
-                int relAddress = processor.getLabels().get(tryte).address - address - currLen;
+                tryte = tryte.substring(1);
+                int relAddress = processor.getLabels().get(tryte).address - address - 4;
                 trytes.set(i, DataType.TRYTE.compile(Integer.toString(relAddress)).get(0));
             } else if (Processor.isValidLabelName(tryte)) {
                 AsmLine link = processor.getLabels().get(tryte);
