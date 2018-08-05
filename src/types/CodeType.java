@@ -210,7 +210,7 @@ public enum CodeType {
             return trytes;
         }
     },
-    ADX_INSTR("ad") {
+    ADX("ad") {
         @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
             // extract ACT, OP1, OP2 and DST
             if (!hasDst) throw new Exception("ADx instruction must have destination.");
@@ -266,6 +266,13 @@ public enum CodeType {
                 trytes.add(CodeType.asm("1", "0", "0", "0", op2, op1));
                 trytes.add(CodeType.asm("0", "0", "0", "1", "1", "1"));
                 trytes.add(dst);
+            } else if (op1Reg & !op1Adr & op2Imm & !op2Adr & dstImm & dstAdr) {
+                // adx a, i2 -> [i1]
+                trytes.add(CodeType.asm("1", "0", "0", act, "0", "λ"));
+                trytes.add(CodeType.asm("1", "0", "0", "λ", "0", op1));
+                trytes.add(CodeType.asm("0", "0", "0", "1", "1", "1"));
+                trytes.add(dst);
+                trytes.add(op2);
             } else if (op1Reg & !op1Adr & op2Imm & !op2Adr & dstReg & !dstAdr) {
                 // adx a, i1 -> b
                 trytes.add(CodeType.asm("0", "0", "0", act, "0", "λ"));
@@ -538,6 +545,13 @@ public enum CodeType {
                 trytes.add(CodeType.asm(al0, al1, "0", "0", op2, op1));
                 trytes.add(CodeType.asm("0", "0", "0", "1", "1", "1"));
                 trytes.add(dst);
+            } else if (op1Reg & !op1Adr & op2Imm & !op2Adr & dstImm & dstAdr) {
+                // xxxx a, i2 -> [i1]
+                trytes.add(CodeType.asm("1", "0", "0", "0", "0", "λ"));
+                trytes.add(CodeType.asm(al0, al1, "0", "λ", "0", op1));
+                trytes.add(CodeType.asm("0", "0", "0", "1", "1", "1"));
+                trytes.add(dst);
+                trytes.add(op2);
             } else if (op1Reg & !op1Adr & op2Imm & !op2Adr & dstReg & !dstAdr) {
                 // xxxx a, i1 -> b
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "λ"));
