@@ -83,6 +83,7 @@ public class Processor {
         while (reader.ready()) {
             // prepare line
             String line = reader.readLine().trim();
+            lineNum++;
             if (line.contains(";")) line = line.substring(0, line.indexOf(';')); // remove comments
             if (line.equals(SECTION_DATA)) {
                 parseData(reader, lineNum);

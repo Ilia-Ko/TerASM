@@ -48,7 +48,7 @@ public enum DataType {
             for (int i = length * 2; i > 0; i -= 2) {
                 SepDigit d0 = SepDigit.parseBySymbol(number.substring(i - 1, i));
                 SepDigit d1 = SepDigit.parseBySymbol(number.substring(i - 2, i - 1));
-                if (d0 == null || d1 == null) throw new NumberFormatException(String.format("Line #%d: invalid sep value '%s.", line, number));
+                if (d0 == null || d1 == null) throw new NumberFormatException(String.format("Line #%d: invalid sep value '%s'.", line, number));
                 trytes.add(d1.getCode() + d0.getCode());
             }
         } else {
