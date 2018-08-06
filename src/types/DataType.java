@@ -28,13 +28,13 @@ public enum DataType {
         return null;
     }
 
-    public ArrayList<String> compile(String number) throws NumberFormatException {
+    public ArrayList<String> compile(String number, int line) throws NumberFormatException {
         ArrayList<String> trytes = new ArrayList<>(length);
         if (number.startsWith("0t")) {
             // raw ternary number
             int maxLen = length * 6;
             if (number.length() > maxLen + 2)
-                throw new NumberFormatException(String.format("Value '%s' too big for %s (max %d trits).", number, longName, maxLen));
+                throw new NumberFormatException(String.format("Line #%d: value '%s' too big for %s (max %d trits).", line, number, longName, maxLen));
             number = number.substring(2);
             while (number.length() < maxLen) number = "0".concat(number);
             for (int i = maxLen; i > 0; i -= 6) trytes.add(number.substring(i - 6, i));
@@ -42,13 +42,13 @@ public enum DataType {
             // septemvigesimal number
             int maxLen = length * 2;
             if (number.length() > maxLen + 2)
-                throw new NumberFormatException(String.format("Value '%s' too big for %s (max %d sep digits).", number, longName, maxLen));
+                throw new NumberFormatException(String.format("Line #%d: value '%s' too big for %s (max %d sep digits).", line, number, longName, maxLen));
             number = number.substring(2);
             while (number.length() < length * 2) number = "0".concat(number);
             for (int i = length * 2; i > 0; i -= 2) {
                 SepDigit d0 = SepDigit.parseBySymbol(number.substring(i - 1, i));
                 SepDigit d1 = SepDigit.parseBySymbol(number.substring(i - 2, i - 1));
-                if (d0 == null || d1 == null) throw new NumberFormatException(number.substring(i-1, i+1));
+                if (d0 == null || d1 == null) throw new NumberFormatException(String.format("Line #%d: invalid sep value '%s.", line, number));
                 trytes.add(d1.getCode() + d0.getCode());
             }
         } else {
@@ -56,7 +56,7 @@ public enum DataType {
             long value = Integer.parseInt(number);
             long maxValue = ((long) Math.pow(3.0, length * 6) - 1L) / 2L;
             if (value > maxValue || value < -maxValue)
-                throw new NumberFormatException(String.format("Value %s too big for %s (±%d).", number, longName, maxValue));
+                throw new NumberFormatException(String.format("Line #%d: value %s too big for %s (±%d).", line, number, longName, maxValue));
             boolean isNegative = value < 0;
             if (isNegative) value = -value;
             int[] digits = new int[length * 6 + 1];

@@ -26,10 +26,12 @@ public class Processor {
 
     void parse() throws Exception {
         BufferedReader reader = new BufferedReader(new FileReader(source));
+        Integer lineNum = 0;
         while (reader.ready()) {
             String line = reader.readLine().trim();
-            if (line.equals(SECTION_DATA)) parseData(reader);
-            else if (line.equals(SECTION_CODE)) parseCode(reader);
+            lineNum++;
+            if (SECTION_DATA.equals(line)) parseData(reader, lineNum);
+            else if (SECTION_CODE.equals(line)) parseCode(reader, lineNum);
         }
         reader.close();
     }
@@ -62,32 +64,33 @@ public class Processor {
         writer.close();
     }
 
-    private void parseData(BufferedReader reader) throws Exception {
+    private void parseData(BufferedReader reader, Integer lineNum) throws Exception {
         while (reader.ready()) {
             // prepare line
             String line = reader.readLine().trim();
+            lineNum++;
             if (line.contains(";")) line = line.substring(0, line.indexOf(';')); // remove comments
             if (line.equals(SECTION_CODE)) {
-                parseCode(reader);
+                parseCode(reader, lineNum);
                 continue;
             }
             if (line.isEmpty()) continue;
             // init data line
-            new DataLine(line, this);
+            new DataLine(line, this, lineNum);
         }
     }
-    private void parseCode(BufferedReader reader) throws Exception {
+    private void parseCode(BufferedReader reader, Integer lineNum) throws Exception {
         while (reader.ready()) {
             // prepare line
             String line = reader.readLine().trim();
             if (line.contains(";")) line = line.substring(0, line.indexOf(';')); // remove comments
             if (line.equals(SECTION_DATA)) {
-                parseData(reader);
+                parseData(reader, lineNum);
                 continue;
             }
             if (line.isEmpty()) continue;
             // init data line
-            new CodeLine(line, this);
+            new CodeLine(line, this, lineNum);
         }
     }
 

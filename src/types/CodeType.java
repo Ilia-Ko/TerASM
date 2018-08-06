@@ -7,15 +7,15 @@ import java.util.ArrayList;
 public enum CodeType {
 
     MOV("mov") {
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
             // extract SRC and DST
-            if (!hasDst) throw new Exception("MOV instruction must have destination.");
-            if (ops.size() != 2) throw new Exception("MOV instruction must have exactly two operands: source and destination.");
+            if (!hasDst) throw new Exception(String.format("Line #%d: <%s> must have destination.", line, name));
+            if (ops.size() != 2)
+                throw new Exception(String.format("Line #%d: <%s> must have exactly two operands: source and destination.", line, name));
             String src = ops.get(0);
             String dst = ops.get(1);
             boolean srcAdr = src.startsWith("[") && src.endsWith("]");
             boolean dstAdr = dst.startsWith("[") && dst.endsWith("]");
-            if (srcAdr && dstAdr) throw new Exception("MOV mem → mem not allowed.");
             if (srcAdr) src = CodeType.dereference(src);
             if (dstAdr) dst = CodeType.dereference(dst);
             boolean srcReg = Processor.isValidRegName(src);
@@ -25,11 +25,11 @@ public enum CodeType {
             if (srcReg) src = Processor.parseReg(src);
             if (dstReg) dst = Processor.parseReg(dst);
             if (!srcImm && !srcReg) { // src is raw number
-                src = DataType.TRYTE.compile(src).get(0);
+                src = DataType.TRYTE.compile(src, line).get(0);
                 srcImm = true;
             }
             if (!dstImm && !dstReg) { // dst is raw number
-                dst = DataType.TRYTE.compile(dst).get(0);
+                dst = DataType.TRYTE.compile(dst, line).get(0);
                 dstImm = true;
             }
             // assemble
@@ -75,21 +75,23 @@ public enum CodeType {
                 trytes.add(CodeType.asm("0", "0", "0", "0", "1", "1"));
                 trytes.add(dst);
                 trytes.add(src);
-            } else throw new Exception("MOV " + ops.get(0) + " → " + ops.get(1) + " not allowed.");
+            } else throw new Exception(String.format("Line #%d: <%s %s → %s> not allowed.", line, name, ops.get(0), ops.get(1)));
             return trytes;
         }
     },
     FILLX("fill") {
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
             // extract VAL, OP1 and OP2
-            if (hasDst) throw new Exception("FILLx instruction must not have '→' symbol, because every its operand is destination itself.");
-            realName = realName.toLowerCase();
+            if (hasDst) throw new Exception(String.format("Line #%d: <%s> cannot have destination, " +
+                        "because each operand is a kind of destination itself.", line, name));
+            name = name.toLowerCase();
             String val;
-            if ("filln".endsWith(realName)) val = "λ";
-            else if ("fillz".endsWith(realName)) val = "0";
-            else if ("fillp".endsWith(realName)) val = "1";
-            else throw new Exception("Unknown FILLx type: " + realName);
-            if (ops.size() > 2 || ops.size() == 0) throw new Exception("FILLx instruction must have either one or two operands.");
+            if ("filln".endsWith(name)) val = "λ";
+            else if ("fillz".endsWith(name)) val = "0";
+            else if ("fillp".endsWith(name)) val = "1";
+            else throw new Exception(String.format("Line #%d: invalid FILLx type: <%s> (allowed: FILLN, FILLZ, FILLP).", line, name));
+            if (ops.size() > 2 || ops.size() == 0)
+                throw new Exception(String.format("Line #%d: <%s> must have either one or two operands.", line, name));
             boolean twoOps = ops.size() == 2;
             String op1 = ops.get(0);
             String op2 = twoOps ? ops.get(1) : "";
@@ -104,11 +106,11 @@ public enum CodeType {
             if (op1Reg) op1 = Processor.parseReg(op1);
             if (twoOps && op2Reg) op2 = Processor.parseReg(op2);
             if (!op1Imm && !op1Reg) {
-                op1 = DataType.TRYTE.compile(op1).get(0);
+                op1 = DataType.TRYTE.compile(op1, line).get(0);
                 op1Imm = true;
             }
             if (twoOps && !op2Imm && !op2Reg) {
-                op2 = DataType.TRYTE.compile(op2).get(0);
+                op2 = DataType.TRYTE.compile(op2, line).get(0);
                 op2Imm = true;
             }
             // assemble
@@ -140,26 +142,31 @@ public enum CodeType {
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(CodeType.asm("0", op1, "λ", "0", "1", "λ"));
                 trytes.add(op1);
-            } else throw new Exception("FILLx " + ops.get(0) + (twoOps ? (", " + ops.get(1)) : "") + " not allowed.");
+            } else {
+                String form = "Line #%d: <%s %s";
+                if (twoOps) form += ", ";
+                form += "%s> not allowed.";
+                throw new Exception(String.format(form, line, name, ops.get(0), (twoOps ? ops.get(1) : "")));
+            }
             return trytes;
         }
     },
     XTI("ti") {
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
             // extract ACT, SRC and DST
-            if (!hasDst) throw new Exception("xTI instruction must have destination.");
-            realName = realName.toLowerCase();
+            if (!hasDst) throw new Exception(String.format("Line #%d: <%s> must have destination.", line, name));
+            name = name.toLowerCase();
             String act;
-            if ("nti".equals(realName)) act = "λ";
-            else if ("sti".equals(realName)) act = "0";
-            else if ("pti".equals(realName)) act = "1";
-            else throw new Exception("Unknown xTI type: " + realName);
-            if (ops.size() != 2) throw new Exception("xTI instruction must have exactly two operands: source and destination.");
+            if ("nti".equals(name)) act = "λ";
+            else if ("sti".equals(name)) act = "0";
+            else if ("pti".equals(name)) act = "1";
+            else throw new Exception(String.format("Line #%d: invalid xTI type: <%s> (allowed: NTI, STI, PTI).", line, name));
+            if (ops.size() != 2)
+                throw new Exception(String.format("Line #%d: <%s> must have exactly two operands: source and destination.", line, name));
             String src = ops.get(0);
             String dst = ops.get(1);
             boolean srcAdr = src.startsWith("[") && src.endsWith("]");
             boolean dstAdr = dst.startsWith("[") && dst.endsWith("]");
-            if (srcAdr && dstAdr) throw new Exception("'xTI mem → mem' not allowed.");
             if (srcAdr) src = CodeType.dereference(src);
             if (dstAdr) dst = CodeType.dereference(dst);
             boolean srcReg = Processor.isValidRegName(src);
@@ -169,15 +176,14 @@ public enum CodeType {
             if (srcReg) src = Processor.parseReg(src);
             if (dstReg) dst = Processor.parseReg(dst);
             if (!srcImm && !srcReg) { // src is raw number
-                src = DataType.TRYTE.compile(src).get(0);
+                src = DataType.TRYTE.compile(src, line).get(0);
                 srcImm = true;
             }
             if (!dstImm && !dstReg) { // dst is raw number
-                dst = DataType.TRYTE.compile(dst).get(0);
+                dst = DataType.TRYTE.compile(dst, line).get(0);
                 dstImm = true;
             }
             // assemble
-            // trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
             ArrayList<String> trytes = new ArrayList<>();
             if (srcReg & !srcAdr & dstReg & !dstAdr) {
                 // xti a -> b
@@ -206,27 +212,27 @@ public enum CodeType {
                 trytes.add(CodeType.asm("λ", act, "0", "0", "0", "0"));
                 trytes.add(CodeType.asm("1", dst, "1", "0", "1", "0"));
                 trytes.add(src);
-            } else throw new Exception("xTI " + ops.get(0) + " → " + ops.get(1) + " not allowed.");
+            } else throw new Exception(String.format("Line #%d: <%s %s> not allowed.", line, name, ops.get(0)));
             return trytes;
         }
     },
     ADX("ad") {
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
             // extract ACT, OP1, OP2 and DST
-            if (!hasDst) throw new Exception("ADx instruction must have destination.");
-            if (ops.size() != 3) throw new Exception("ADx instruction must have exactly three operands: two arguments and destination.");
-            realName = realName.toLowerCase();
+            if (!hasDst) throw new Exception(String.format("Line #%d: <%s> must have destination.", line, name));
+            if (ops.size() != 3)
+                throw new Exception(String.format("Line #%d: <%s> must have exactly three operands: two arguments and destination.", line, name));
+            name = name.toLowerCase();
             String act;
-            if ("add".equals(realName)) act = "λ";
-            else if ("adc".equals(realName)) act = "1";
-            else throw new Exception("Unknown ADx type: " + realName);
+            if ("add".equals(name)) act = "λ";
+            else if ("adc".equals(name)) act = "1";
+            else throw new Exception(String.format("Line #%d: invalid ADx type: <%s> (allowed: ADD, ADC).", line, name));
             String op1 = ops.get(0);
             String op2 = ops.get(1);
             String dst = ops.get(2);
             boolean op1Adr = op1.startsWith("[") && op1.endsWith("]");
             boolean op2Adr = op2.startsWith("[") && op2.endsWith("]");
             boolean dstAdr = dst.startsWith("[") && dst.endsWith("]");
-            if (op1Adr && op2Adr || op2Adr && dstAdr || op1Adr && dstAdr) throw new Exception("ADx can have no more than one [address] operand.");
             if (op1Adr) op1 = CodeType.dereference(op1);
             if (op2Adr) op2 = CodeType.dereference(op2);
             if (dstAdr) dst = CodeType.dereference(dst);
@@ -240,15 +246,15 @@ public enum CodeType {
             if (op2Reg) op2 = Processor.parseReg(op2);
             if (dstReg) dst = Processor.parseReg(dst);
             if (!op1Imm && !op1Reg) { // op1 is raw number
-                op1 = DataType.TRYTE.compile(op1).get(0);
+                op1 = DataType.TRYTE.compile(op1, line).get(0);
                 op1Imm = true;
             }
             if (!op2Imm && !op2Reg) { // op2 is raw number
-                op2 = DataType.TRYTE.compile(op2).get(0);
+                op2 = DataType.TRYTE.compile(op2, line).get(0);
                 op2Imm = true;
             }
             if (!dstImm && !dstReg) { // dst is raw number
-                dst = DataType.TRYTE.compile(dst).get(0);
+                dst = DataType.TRYTE.compile(dst, line).get(0);
                 dstImm = true;
             }
 
@@ -304,20 +310,19 @@ public enum CodeType {
                 trytes.add(CodeType.asm("1", "0", "λ", "0", op2, "0"));
                 trytes.add(CodeType.asm("1", dst, "1", "0", "1", "0"));
                 trytes.add(op1);
-            } else throw new Exception("ADx " + ops.get(0) + ", " + ops.get(1) + " → " + ops.get(2) + " not allowed.");
+            } else throw new Exception(String.format("Line #%d: <%s %s, %s → %s> not allowed.", line, name, ops.get(0), ops.get(1), ops.get(2)));
             return trytes;
         }
     },
     CMP("cmp") {
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
             // extract SRC and DST
-            if (hasDst) throw new Exception("CMP must not have destination.");
-            if (ops.size() != 2) throw new Exception("CMP must have exactly two operands.");
+            if (hasDst) throw new Exception(String.format("Line #%d: <%s> cannot have destination, because result is stored in ZF.", line, name));
+            if (ops.size() != 2) throw new Exception(String.format("Line #%d: <%s> must have exactly two operands.", line, name));
             String op1 = ops.get(0);
             String op2 = ops.get(1);
             boolean op1Adr = op1.startsWith("[") && op1.endsWith("]");
             boolean op2Adr = op2.startsWith("[") && op2.endsWith("]");
-            if (op1Adr && op2Adr) throw new Exception("CMP mem, mem not allowed.");
             if (op1Adr) op1 = CodeType.dereference(op1);
             if (op2Adr) op2 = CodeType.dereference(op2);
             boolean op1Reg = Processor.isValidRegName(op1);
@@ -327,11 +332,11 @@ public enum CodeType {
             if (op1Reg) op1 = Processor.parseReg(op1);
             if (op2Reg) op2 = Processor.parseReg(op2);
             if (!op1Imm && !op1Reg) { // op1 is raw number
-                op1 = DataType.TRYTE.compile(op1).get(0);
+                op1 = DataType.TRYTE.compile(op1, line).get(0);
                 op1Imm = true;
             }
             if (!op2Imm && !op2Reg) { // op2 is raw number
-                op2 = DataType.TRYTE.compile(op2).get(0);
+                op2 = DataType.TRYTE.compile(op2, line).get(0);
                 op2Imm = true;
             }
             // assemble
@@ -366,97 +371,99 @@ public enum CodeType {
                 trytes.add(CodeType.asm("0", "0", "0", "0", "1", "0"));
                 trytes.add(op1);
                 trytes.add(op2);
-            } else throw new Exception("CMP " + ops.get(0) + ", " + ops.get(1) + " not allowed.");
+            } else throw new Exception(String.format("Line #%d: <%s %s, %s> not allowed.", line, name, ops.get(0), ops.get(1)));
             return trytes;
         }
     },
     JXX("j") {
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
             // extract TYPE, CON, OP1 and OP2
-            if (hasDst) throw new Exception("Jxx instruction must not have '→' symbol, because every its operand is destination itself.");
-            realName = realName.toLowerCase();
+            if (hasDst) throw new Exception(String.format("Line #%d: <%s> cannot have destination, " +
+                    "because each operand is a kind of destination itself.", line, name));
+            name = name.toLowerCase();
             String typ, con;
-            if ("jmp".equals(realName)) {
+            if ("jmp".equals(name)) {
                 typ = "λ";
                 con = "0";
-            } else if ("jl".equals(realName)) {
+            } else if ("jl".equals(name)) {
                 typ = "0";
                 con = "λ";
-            } else if ("je".equals(realName)) {
+            } else if ("je".equals(name)) {
                 typ = "0";
                 con = "0";
-            } else if ("jg".equals(realName)) {
+            } else if ("jg".equals(name)) {
                 typ = "0";
                 con = "1";
-            } else if ("jeg".equals(realName) || "jnl".equals(realName)) {
+            } else if ("jeg".equals(name) || "jnl".equals(name)) {
                 typ = "1";
                 con = "λ";
-            } else if ("jlg".equals(realName) || "jne".equals(realName)) {
+            } else if ("jlg".equals(name) || "jne".equals(name)) {
                 typ = "1";
                 con = "0";
-            } else if ("jle".equals(realName) || "jng".equals(realName)) {
+            } else if ("jle".equals(name) || "jng".equals(name)) {
                 typ = "1";
                 con = "1";
-            } else throw new Exception("Unknown Jxx type: " + realName);
-            if (ops.size() > 2 || ops.size() == 0) throw new Exception("Jxx instruction must have either one or two operands.");
+            } else throw new Exception(String.format("Line #%d: invalid Jxx type: <%s> " +
+                    "(allowed: JMP, JL, JE, JG, JNL, JNE, JNG, JLE, JLG, JEG).", line, name));
+            if (ops.size() > 2 || ops.size() == 0) throw new Exception(String.format("Line #%d: <%s> must have either one or two operands.", line, name));
             boolean twoOps = ops.size() == 2;
             String op1 = ops.get(0);
             String op2 = twoOps ? ops.get(1) : "";
             boolean op1Adr = op1.startsWith("[") && op1.endsWith("]");
             boolean op2Adr = twoOps && (op2.startsWith("[") && op2.endsWith("]"));
-            if (op1Adr || op2Adr) throw new Exception("Jxx operands can not be [addresses].");
             boolean op1Reg = Processor.isValidRegName(op1);
             boolean op1Imm = !op1Reg && Processor.isValidLabelName(op1);
             boolean op2Reg = twoOps && Processor.isValidRegName(op2);
             boolean op2Imm = twoOps && !op2Reg && Processor.isValidLabelName(op2);
             if (op1Reg) op1 = Processor.parseReg(op1);
             if (twoOps && op2Reg) op2 = Processor.parseReg(op2);
-            if (op1Imm) {
-                op1 = "$" + op1;
-            } else if (!op1Reg) {
-                op1 = DataType.TRYTE.compile(op1).get(0);
+            if (!op1Imm && !op1Reg) {
+                op1 = DataType.TRYTE.compile(op1, line).get(0);
                 op1Imm = true;
             }
-            if (twoOps && op2Imm) {
-                op2 = "$" + op2;
-            } else if (twoOps && !op2Reg) {
-                op2 = DataType.TRYTE.compile(op2).get(0);
+            if (twoOps && !op2Imm && !op2Reg) {
+                op2 = DataType.TRYTE.compile(op2, line).get(0);
                 op2Imm = true;
             }
             // assemble
             ArrayList<String> trytes = new ArrayList<>();
-            if (op1Reg & !twoOps) {
+            if (op1Reg & !op1Adr & !twoOps) {
                 // jxx a
                 trytes.add(CodeType.asm("λ", "1", "0", "0", con, typ));
-                trytes.add(CodeType.asm("1", "0", "1", "0", op1, "0"));
+                trytes.add(CodeType.asm("0", "0", "0", "0", op1, "0"));
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
-            } else if (op1Imm & !twoOps) {
+            } else if (op1Imm & !op1Adr & !twoOps) {
                 // jxx i1
                 trytes.add(CodeType.asm("0", "1", "0", "0", con, typ));
-                trytes.add(CodeType.asm("1", "0", "1", "1", "0", "0"));
+                trytes.add(CodeType.asm("0", "0", "0", "1", "0", "0"));
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(op1);
-            } else if (op1Imm & op2Reg) {
+            } else if (op1Imm & !op1Adr & twoOps & op2Reg & !op2Adr) {
                 // jxx i1, a
                 trytes.add(CodeType.asm("0", "1", "0", "0", con, typ));
-                trytes.add(CodeType.asm("1", "0", "1", "0", op1, "0"));
+                trytes.add(CodeType.asm("0", "0", "0", "0", op1, "0"));
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(op1);
-            } else if (op1Imm & op2Imm) {
+            } else if (op1Imm & !op1Adr & twoOps & op2Imm & !op2Adr) {
                 // jxx i1, i2
                 trytes.add(CodeType.asm("1", "1", "0", "0", con, typ));
-                trytes.add(CodeType.asm("1", "0", "1", "λ", "0", "0"));
+                trytes.add(CodeType.asm("0", "0", "0", "λ", "0", "0"));
                 trytes.add(CodeType.asm("0", "0", "0", "0", "0", "0"));
                 trytes.add(op1);
                 trytes.add(op2);
-            } else throw new Exception("Jxx " + ops.get(0) + ", " + ops.get(1) + " not allowed.");
+            } else {
+                String form = "Line #%d: <%s %s";
+                if (twoOps) form += ", ";
+                form += "%s> not allowed.";
+                throw new Exception(String.format(form, line, name, ops.get(0), (twoOps ? ops.get(1) : "")));
+            }
             return trytes;
         }
     },
     RESTART("restart") {
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
-            if (hasDst) throw new Exception("RESTART instruction cannot have destination.");
-            if (ops.size() != 0) throw new Exception("RESTART instruction cannot have operands.");
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
+            if (hasDst) throw new Exception(String.format("Line #%d: <%s> cannot have destination.", line, name));
+            if (ops.size() != 0) throw new Exception(String.format("Line #%d: <%s> cannot have operands.", line, name));
             // assemble
             ArrayList<String> trytes = new ArrayList<>();
             trytes.add(CodeType.asm("λ", "λ", "0", "λ", "0", "λ"));
@@ -467,35 +474,35 @@ public enum CodeType {
     },
     ALU_INSTR("") {
         @SuppressWarnings("SpellCheckingInspection")
-        @Override public ArrayList<String> compile(String realName, ArrayList<String> ops, boolean hasDst) throws Exception {
+        @Override public ArrayList<String> compile(String name, ArrayList<String> ops, boolean hasDst, int line) throws Exception {
             // extract AL0, AL1, OP1, OP2 and DST
-            if (!hasDst) throw new Exception("ALU instruction must have destination.");
-            if (ops.size() != 3) throw new Exception("ALU instruction must have exactly three operands: two arguments and destination.");
-            realName = realName.toLowerCase();
+            if (!hasDst) throw new Exception(String.format("Line #%d: <%s> must have destination.", line, name));
+            if (ops.size() != 3)
+                throw new Exception(String.format("Line #%d: <%s> must have exactly three operands: two arguments and destination.", line, name));
+            name = name.toLowerCase();
             String al0, al1;
-            if ("nand".equals(realName)) {
+            if ("nand".equals(name)) {
                 al0 = "0";
                 al1 = "λ";
-            } else if ("nor".equals(realName)) {
+            } else if ("nor".equals(name)) {
                 al0 = "0";
                 al1 = "0";
-            } else if ("ncon".equals(realName)) {
+            } else if ("ncon".equals(name)) {
                 al0 = "0";
                 al1 = "1";
-            } else if ("nany".equals(realName)) {
+            } else if ("nany".equals(name)) {
                 al0 = "1";
                 al1 = "λ";
-            } else if ("tmul".equals(realName)) {
+            } else if ("tmul".equals(name)) {
                 al0 = "1";
                 al1 = "1";
-            } else throw new Exception("Unknown ALU instruction: " + realName);
+            } else throw new Exception(String.format("Line #%d: invalid ALU instruction type: <%s> (allowed: NAND, NOR, NCON, NANY, TMUL).", line, name));
             String op1 = ops.get(0);
             String op2 = ops.get(1);
             String dst = ops.get(2);
             boolean op1Adr = op1.startsWith("[") && op1.endsWith("]");
             boolean op2Adr = op2.startsWith("[") && op2.endsWith("]");
             boolean dstAdr = dst.startsWith("[") && dst.endsWith("]");
-            if (op1Adr && op2Adr || op2Adr && dstAdr || op1Adr && dstAdr) throw new Exception("ALU instruction can have no more than one [address] operand.");
             if (op1Adr) op1 = CodeType.dereference(op1);
             if (op2Adr) op2 = CodeType.dereference(op2);
             if (dstAdr) dst = CodeType.dereference(dst);
@@ -509,15 +516,15 @@ public enum CodeType {
             if (op2Reg) op2 = Processor.parseReg(op2);
             if (dstReg) dst = Processor.parseReg(dst);
             if (!op1Imm && !op1Reg) { // op1 is raw number
-                op1 = DataType.TRYTE.compile(op1).get(0);
+                op1 = DataType.TRYTE.compile(op1, line).get(0);
                 op1Imm = true;
             }
             if (!op2Imm && !op2Reg) { // op2 is raw number
-                op2 = DataType.TRYTE.compile(op2).get(0);
+                op2 = DataType.TRYTE.compile(op2, line).get(0);
                 op2Imm = true;
             }
             if (!dstImm && !dstReg) { // dst is raw number
-                dst = DataType.TRYTE.compile(dst).get(0);
+                dst = DataType.TRYTE.compile(dst, line).get(0);
                 dstImm = true;
             }
             // assemble
@@ -571,7 +578,7 @@ public enum CodeType {
                 trytes.add(CodeType.asm(al0, al1, "λ", "0", op2, "0"));
                 trytes.add(CodeType.asm("1", dst, "1", "0", "1", "0"));
                 trytes.add(op1);
-            } else throw new Exception(realName + " " + ops.get(0) + ", " + ops.get(1) + " → " + ops.get(2) + " not allowed.");
+            } else throw new Exception(String.format("Line #%d: <%s %s, %s → %s> not allowed.", line, name, ops.get(0), ops.get(1), ops.get(2)));
             return trytes;
         }
     };
@@ -599,6 +606,6 @@ public enum CodeType {
         return builder.toString();
     }
 
-    public abstract ArrayList<String> compile(String realName, ArrayList<String> operands, boolean hasDestination) throws Exception;
+    public abstract ArrayList<String> compile(String realName, ArrayList<String> operands, boolean hasDestination, int lineNum) throws Exception;
 
 }

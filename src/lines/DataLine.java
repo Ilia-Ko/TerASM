@@ -5,8 +5,8 @@ import types.DataType;
 
 public class DataLine extends AsmLine {
 
-    public DataLine(String line, Processor proc) throws Exception {
-        super(line, proc);
+    public DataLine(String line, Processor proc, int lineNum) throws Exception {
+        super(line, proc, lineNum);
         proc.getData().add(this);
     }
 
@@ -23,7 +23,7 @@ public class DataLine extends AsmLine {
         for (int i = 1; i < parts.length; i++) {
             if (parts[i].isEmpty()) continue;
             if (Processor.isValidLabelName(parts[i])) trytes.add(parts[i]);
-            else trytes.addAll(type.compile(parts[i]));
+            else trytes.addAll(type.compile(parts[i], lineNum));
         }
 
         // update address

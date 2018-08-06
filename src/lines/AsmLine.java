@@ -11,10 +11,10 @@ public abstract class AsmLine {
 
     String line;
     ArrayList<String> trytes;
-    int address;
+    int address, lineNum;
     private Processor processor;
 
-    AsmLine(String line, Processor proc) throws Exception {
+    AsmLine(String line, Processor proc, int lineNum) throws Exception {
         processor = proc;
         trytes = new ArrayList<>();
         address = 0;
@@ -27,6 +27,7 @@ public abstract class AsmLine {
             line = line.substring(labelMark + 1);
         }
         this.line = line.trim();
+        this.lineNum = lineNum;
     }
 
     public abstract int compile(int address) throws Exception;
@@ -35,11 +36,7 @@ public abstract class AsmLine {
         // dereference labels if present
         for (int i = 0; i < trytes.size(); i++) {
             String tryte = trytes.get(i);
-            if (tryte.charAt(0) == '$') { // link is absolute, should be relative
-                tryte = tryte.substring(1);
-                int relAddress = processor.getLabels().get(tryte).address - address - 4;
-                trytes.set(i, DataType.TRYTE.compile(Integer.toString(relAddress)).get(0));
-            } else if (Processor.isValidLabelName(tryte)) {
+            if (Processor.isValidLabelName(tryte)) {
                 AsmLine link = processor.getLabels().get(tryte);
                 if (link == null) throw new Exception("Undefined label: " + tryte);
                 trytes.set(i, processor.getLabels().get(tryte).getAddress());
@@ -48,7 +45,7 @@ public abstract class AsmLine {
         return trytes;
     }
     private String getAddress() {
-        return DataType.TRYTE.compile(Integer.toString(address + BASE_ADDRESS)).get(0);
+        return DataType.TRYTE.compile(Integer.toString(address + BASE_ADDRESS), lineNum).get(0);
     }
 
 }
